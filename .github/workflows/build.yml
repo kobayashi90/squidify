@@ -39,7 +39,7 @@ jobs:
       - name: Build app with Nativefier (Linux/macOS)
         if: matrix.os != 'windows'
         run: |
-          mkdir -p output
+          mkdir output
           nativefier \
             --name "Squidify" \
             --platform=${{ matrix.platform }} \
@@ -53,7 +53,6 @@ jobs:
 
       - name: Build app with Nativefier (Windows)
         if: matrix.os == 'windows'
-        shell: bash
         run: |
           mkdir output
           nativefier \
@@ -67,42 +66,58 @@ jobs:
             --chromium-args="--disable-http2 --disable-quic --disable-features=QUIC,HTTP3 --enable-features=HttpProtocolNegotiation" \
             "https://squidify.org" output/
 
-      - name: List output folder content (Windows)
+      - name: Rename Windows output folder for NSIS
         if: matrix.os == 'windows'
         shell: bash
         run: |
-          echo "Listing contents of output folder:"
-          ls -la output
+          # There should be a single folder matching *win32-x64, rename it to fixed folder
+          folder=$(find output -maxdepth 1 -type d -name '*win32-x64' | head -n 1)
+          echo "Renaming $folder to output/Squidify-win32-x64"
+          mv "$folder" output/Squidify-win32-x64
 
-      - name: Rename Nativefier output folder (Windows)
+      - name: Create NSIS installer on Windows
         if: matrix.os == 'windows'
-        shell: bash
+        shell: pwsh
         run: |
-          if [ ! -d output/Squidify-win32-x64 ]; then
-            mv output/*win32* output/Squidify-win32-x64
-          else
-            echo "Folder output/Squidify-win32-x64 already exists, skipping rename"
-          fi
-
-      - name: Install NSIS (Windows)
-        if: matrix.os == 'windows'
-        run: choco install nsis
-
-      - name: Build NSIS installer (Windows)
-        if: matrix.os == 'windows'
-        run: makensis installer.nsi
+          $nsisPath = "${Env:ProgramFiles(x86)}\NSIS\makensis.exe"
+          & $nsisPath installer.nsi
 
       - name: Zip app for macOS (if applicable)
         if: matrix.os == 'macos'
         run: |
           cd output
-          zip -r squidify-macos.zip .
+          zip -r squidify-macos.zip ./*
 
-      - name: Upload artifacts
+      # Upload Linux artifact
+      - name: Upload artifact for Linux
+        if: matrix.os == 'linux'
         uses: actions/upload-artifact@v4
         with:
-          name: squidify-${{ matrix.os }}
+          name: squidify-linux
+          path: output/
+
+      # Upload macOS artifact and zip
+      - name: Upload artifact for macOS
+        if: matrix.os == 'macos'
+        uses: actions/upload-artifact@v4
+        with:
+          name: squidify-macos
           path: |
             output/
             output/squidify-macos.zip
-            SquidifyInstaller.exe
+
+      # Upload Windows app folder separately
+      - name: Upload Windows app output
+        if: matrix.os == 'windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: squidify-windows-app
+          path: output/Squidify-win32-x64
+
+      # Upload Windows installer separately
+      - name: Upload Windows installer
+        if: matrix.os == 'windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: squidify-windows-installer
+          path: SquidifyInstaller.exe
