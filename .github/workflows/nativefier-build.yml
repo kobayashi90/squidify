@@ -36,7 +36,8 @@ jobs:
       - name: Install Nativefier
         run: npm install -g nativefier
 
-      - name: Build app with Nativefier
+      - name: Build app with Nativefier (Linux/macOS)
+        if: matrix.os != 'windows'
         run: |
           mkdir output
           nativefier \
@@ -47,6 +48,12 @@ jobs:
             --single-instance \
             --tray \
             "https://squidify.org" output/
+
+      - name: Build app with Nativefier (Windows)
+        if: matrix.os == 'windows'
+        run: |
+          mkdir output
+          nativefier --name "Squidify" --platform=windows --resizable --disable-dev-tools --single-instance --tray "https://squidify.org" output/
 
       - name: Zip app for macOS (if applicable)
         if: matrix.os == 'macos'
