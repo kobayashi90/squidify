@@ -70,19 +70,12 @@ jobs:
         run: |
           makensis installer.nsi
 
-      - name: Zip Windows output folder
-        if: matrix.os == 'windows'
-        run: |
-          Compress-Archive -Path "output/Squidify-win32-x64" -DestinationPath "output/squidify-windows.zip"
-
       - name: Upload Windows artifacts
         if: matrix.os == 'windows'
         uses: actions/upload-artifact@v4
         with:
-          name: squidify-windows-output
-          path: |
-            output/squidify-windows.zip
-            output/SquidifySetup.exe
+          name: squidify-windows
+          path: output/SquidifySetup.exe
 
       - name: Install AppImage dependencies (Linux only)
         if: matrix.os == 'linux'
@@ -182,6 +175,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: squidify-macos
-          path: |
-            output/Squidify-mac-x64
-            output/Squidify.dmg
+          path: output/Squidify.dmg
