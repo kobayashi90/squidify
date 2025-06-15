@@ -60,10 +60,10 @@ jobs:
       - name: Rename Windows folder for NSIS (Windows only)
         if: matrix.os == 'windows'
         run: |
-          folder=$(find output -maxdepth 1 -type d -name '*win32-x64' | head -n 1)
-          if [[ -n "$folder" && "$folder" != "output/Squidify-win32-x64" ]]; then
-            mv "$folder" output/Squidify-win32-x64
-          fi
+          $folder = Get-ChildItem -Path "output" -Directory -Name "*win32-x64" | Select-Object -First 1
+          if ($folder -and $folder -ne "Squidify-win32-x64") {
+            Rename-Item -Path "output/$folder" -NewName "Squidify-win32-x64"
+          }
 
       - name: Build NSIS installer (Windows only)
         if: matrix.os == 'windows'
@@ -73,8 +73,7 @@ jobs:
       - name: Zip Windows output folder
         if: matrix.os == 'windows'
         run: |
-          cd output
-          zip -r squidify-windows.zip Squidify-win32-x64
+          Compress-Archive -Path "output/Squidify-win32-x64" -DestinationPath "output/squidify-windows.zip"
 
       - name: Upload Windows artifacts
         if: matrix.os == 'windows'
