@@ -69,6 +69,8 @@ jobs:
         if: matrix.os == 'windows'
         run: |
           makensis installer.nsi
+          # Move the installer to the output directory
+          Move-Item "SquidifySetup.exe" "output/SquidifySetup.exe"
 
       - name: Upload Windows artifacts
         if: matrix.os == 'windows'
