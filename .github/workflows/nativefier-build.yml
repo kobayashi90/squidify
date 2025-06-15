@@ -45,9 +45,9 @@ jobs:
             --platform=${{ matrix.platform }} \
             --resizable \
             --enable-dev-tools \
-            --enable-context-menu \
             --single-instance \
             --tray \
+            --user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36" \
             --chromium-args="--disable-http2 --disable-quic --disable-features=QUIC,HTTP3 --enable-features=HttpProtocolNegotiation" \
             "https://squidify.org" output/
 
@@ -61,15 +61,19 @@ jobs:
             --platform=windows \
             --resizable \
             --enable-dev-tools \
-            --enable-context-menu \
             --single-instance \
             --tray \
+            --user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36" \
             --chromium-args="--disable-http2 --disable-quic --disable-features=QUIC,HTTP3 --enable-features=HttpProtocolNegotiation" \
             "https://squidify.org" output/
 
-      - name: List output folder contents (macOS)
-        if: matrix.os == 'macos'
-        run: ls -la output
+      - name: Install NSIS (Windows)
+        if: matrix.os == 'windows'
+        run: choco install nsis
+
+      - name: Build NSIS installer (Windows)
+        if: matrix.os == 'windows'
+        run: makensis installer.nsi
 
       - name: Zip app for macOS (if applicable)
         if: matrix.os == 'macos'
@@ -77,10 +81,11 @@ jobs:
           cd output
           zip -r squidify-macos.zip .
 
-      - name: Upload artifact
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: squidify-${{ matrix.os }}
           path: |
             output/
             output/squidify-macos.zip
+            SquidifyInstaller.exe
