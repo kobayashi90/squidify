@@ -117,8 +117,7 @@ jobs:
         if: matrix.os == 'macos'
         run: |
           brew install create-dmg || true
-          cd output
-          create-dmg Squidify-mac-x64 ../Squidify.dmg
+          create-dmg "output/Squidify-mac-x64" "output/Squidify.dmg"
 
       - name: Upload macOS artifacts
         if: matrix.os == 'macos'
