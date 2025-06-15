@@ -44,7 +44,7 @@ jobs:
             --name "Squidify" \
             --platform=${{ matrix.platform }} \
             --resizable \
-            --disable-dev-tools \
+            --enable-dev-tools \
             --single-instance \
             --tray \
             --chromium-args="--disable-http2 --disable-quic" \
