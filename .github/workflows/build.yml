@@ -22,6 +22,8 @@ jobs:
             runner: macos-latest
             platform: mac
 
+    name: Build for ${{ matrix.os }}
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -34,11 +36,9 @@ jobs:
       - name: Install Nativefier
         run: npm install -g nativefier
 
-      # Build app with Nativefier for Linux/macOS
-      - name: Build app (Linux/macOS)
-        if: matrix.os != 'windows'
+      - name: Build app with Nativefier
         run: |
-          mkdir -p output
+          mkdir output
           nativefier \
             --name "Squidify" \
             --platform=${{ matrix.platform }} \
@@ -50,88 +50,81 @@ jobs:
             --chromium-args="--disable-http2 --disable-quic --disable-features=QUIC,HTTP3 --enable-features=HttpProtocolNegotiation" \
             "https://squidify.org" output/
 
-      # Build app with Nativefier for Windows
-      - name: Build app (Windows)
+      - name: Rename Windows folder for NSIS (Windows only)
         if: matrix.os == 'windows'
-        shell: bash
-        run: |
-          mkdir output
-          nativefier \
-            --name "Squidify" \
-            --platform=windows \
-            --resizable \
-            --enable-dev-tools \
-            --single-instance \
-            --tray \
-            --user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36" \
-            --chromium-args="--disable-http2 --disable-quic --disable-features=QUIC,HTTP3 --enable-features=HttpProtocolNegotiation" \
-            "https://squidify.org" output/
-
-      # Rename Windows output folder to fixed name for NSIS packaging
-      - name: Rename Windows output folder
-        if: matrix.os == 'windows'
-        shell: bash
         run: |
           folder=$(find output -maxdepth 1 -type d -name '*win32-x64' | head -n 1)
-          echo "Renaming $folder to output/Squidify-win32-x64"
-          mv "$folder" output/Squidify-win32-x64
+          if [[ -n "$folder" && "$folder" != "output/Squidify-win32-x64" ]]; then
+            mv "$folder" output/Squidify-win32-x64
+          fi
 
-      # Create NSIS installer for Windows
-      - name: Create NSIS installer
+      - name: Build NSIS installer (Windows only)
         if: matrix.os == 'windows'
-        shell: cmd
         run: |
-          "C:\Program Files (x86)\NSIS\makensis.exe" installer.nsi
+          makensis installer.nsi
 
-      # Package macOS app as DMG
-      - name: Create macOS DMG
-        if: matrix.os == 'macos'
+      - name: Zip Windows output folder
+        if: matrix.os == 'windows'
         run: |
-          brew install create-dmg || true
           cd output
-          create-dmg Squidify-mac-x64 Squidify.dmg
+          zip -r squidify-windows.zip Squidify-win32-x64
 
-      # Package Linux app as AppImage
-      - name: Create Linux AppImage
+      - name: Upload Windows artifacts
+        if: matrix.os == 'windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: squidify-windows-output
+          path: |
+            output/squidify-windows.zip
+            output/SquidifySetup.exe
+
+      - name: Install snapd & appimagetool (Linux only)
         if: matrix.os == 'linux'
         run: |
-          wget -q https://github.com/AppImage/AppImageKit/releases/latest/download/appimagetool-x86_64.AppImage
-          chmod +x appimagetool-x86_64.AppImage
-          cd output
-          ./../appimagetool-x86_64.AppImage Squidify-linux-x64 Squidify.AppImage
+          sudo apt-get update
+          sudo apt-get install -y snapd
+          sudo snap install appimagetool --classic
 
-      # Upload Windows installer artifact
-      - name: Upload Windows NSIS installer
-        if: matrix.os == 'windows'
-        uses: actions/upload-artifact@v4
-        with:
-          name: squidify-installer-windows
-          path: output/SquidifyInstaller.exe
-          if-no-files-found: warn
+      - name: Rename Linux folder (Linux only)
+        if: matrix.os == 'linux'
+        run: |
+          folder=$(find output -maxdepth 1 -type d -name '*linux-x64' | head -n 1)
+          if [[ -n "$folder" && "$folder" != "output/Squidify-linux-x64" ]]; then
+            mv "$folder" output/Squidify-linux-x64
+          fi
 
-      # Upload Windows app folder artifact
-      - name: Upload Windows app folder
-        if: matrix.os == 'windows'
-        uses: actions/upload-artifact@v4
-        with:
-          name: squidify-windows-app
-          path: output/Squidify-win32-x64/
-          if-no-files-found: warn
+      - name: Build AppImage (Linux only)
+        if: matrix.os == 'linux'
+        run: |
+          appimagetool output/Squidify-linux-x64 output/Squidify.AppImage
 
-      # Upload macOS DMG artifact
-      - name: Upload macOS DMG
-        if: matrix.os == 'macos'
-        uses: actions/upload-artifact@v4
-        with:
-          name: squidify-macos
-          path: output/Squidify.dmg
-          if-no-files-found: warn
-
-      # Upload Linux AppImage artifact
-      - name: Upload Linux AppImage
+      - name: Upload Linux artifact
         if: matrix.os == 'linux'
         uses: actions/upload-artifact@v4
         with:
           name: squidify-linux
           path: output/Squidify.AppImage
-          if-no-files-found: warn
+
+      - name: Rename macOS folder (macOS only)
+        if: matrix.os == 'macos'
+        run: |
+          folder=$(find output -maxdepth 1 -type d -name '*mac-x64' | head -n 1)
+          if [[ -n "$folder" && "$folder" != "output/Squidify-mac-x64" ]]; then
+            mv "$folder" output/Squidify-mac-x64
+          fi
+
+      - name: Create macOS DMG (macOS only)
+        if: matrix.os == 'macos'
+        run: |
+          brew install create-dmg || true
+          cd output
+          create-dmg Squidify-mac-x64 ../Squidify.dmg
+
+      - name: Upload macOS artifacts
+        if: matrix.os == 'macos'
+        uses: actions/upload-artifact@v4
+        with:
+          name: squidify-macos
+          path: |
+            output/Squidify-mac-x64
+            Squidify.dmg
