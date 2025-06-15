@@ -24,11 +24,11 @@ Section "Install"
 SectionEnd
 
 Section "Uninstall"
-  ; Remove installed files
-  Delete "$INSTDIR\${APP_EXE}"
+  ; Remove installed files recursively
+  RMDir /r "$INSTDIR"
+
+  ; Remove shortcuts
   Delete "$DESKTOP\${APP_NAME}.lnk"
   Delete "$SMPROGRAMS\${APP_NAME}\${APP_NAME}.lnk"
   Delete "$INSTDIR\Uninstall.exe"
-
-  RMDir /r "$INSTDIR"
 SectionEnd
