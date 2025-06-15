@@ -36,7 +36,14 @@ jobs:
       - name: Install Nativefier
         run: npm install -g nativefier
 
-      - name: Build app with Nativefier
+      - name: Build app with Nativefier (Windows)
+        if: matrix.os == 'windows'
+        run: |
+          mkdir output
+          nativefier --name "Squidify" --platform=${{ matrix.platform }} --resizable --enable-dev-tools --single-instance --tray --user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36" --chromium-args="--disable-http2 --disable-quic --disable-features=QUIC,HTTP3 --enable-features=HttpProtocolNegotiation" "https://squidify.org" output/
+
+      - name: Build app with Nativefier (Unix)
+        if: matrix.os != 'windows'
         run: |
           mkdir output
           nativefier \
