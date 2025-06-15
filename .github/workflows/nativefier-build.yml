@@ -45,6 +45,7 @@ jobs:
             --platform=${{ matrix.platform }} \
             --resizable \
             --enable-dev-tools \
+            --enable-context-menu \
             --single-instance \
             --tray \
             --chromium-args="--disable-http2 --disable-quic" \
@@ -54,7 +55,7 @@ jobs:
         if: matrix.os == 'windows'
         run: |
           mkdir output
-          nativefier --name "Squidify" --platform=windows --resizable --disable-dev-tools --single-instance --tray "https://squidify.org" output/
+          nativefier --name "Squidify" --platform=windows --resizable --enable-dev-tools --enable-context-menu --single-instance --tray --chromium-args="--disable-http2 --disable-quic" "https://squidify.org" output/
 
       - name: Zip app for macOS (if applicable)
         if: matrix.os == 'macos'
