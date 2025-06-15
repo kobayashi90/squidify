@@ -2,7 +2,7 @@ name: Build Squidify App
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   workflow_dispatch:
 
 jobs:
@@ -47,7 +47,7 @@ jobs:
             --enable-dev-tools \
             --single-instance \
             --tray \
-            --user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36" \
+            --user-agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36" \
             --chromium-args="--disable-http2 --disable-quic --disable-features=QUIC,HTTP3 --enable-features=HttpProtocolNegotiation" \
             "https://squidify.org" output/
 
@@ -67,21 +67,25 @@ jobs:
             --chromium-args="--disable-http2 --disable-quic --disable-features=QUIC,HTTP3 --enable-features=HttpProtocolNegotiation" \
             "https://squidify.org" output/
 
-      - name: Rename Windows output folder for NSIS
+      - name: Rename Nativefier output folder to fixed name for NSIS script (Windows)
         if: matrix.os == 'windows'
         shell: bash
         run: |
-          # There should be a single folder matching *win32-x64, rename it to fixed folder
           folder=$(find output -maxdepth 1 -type d -name '*win32-x64' | head -n 1)
-          echo "Renaming $folder to output/Squidify-win32-x64"
-          mv "$folder" output/Squidify-win32-x64
+          echo "Found folder: $folder"
 
-      - name: Create NSIS installer on Windows
+          if [ "$folder" != "output/Squidify-win32-x64" ]; then
+            echo "Renaming $folder to output/Squidify-win32-x64"
+            mv "$folder" output/Squidify-win32-x64
+          else
+            echo "Folder already named correctly. No rename needed."
+          fi
+
+      - name: Build Windows installer with NSIS
         if: matrix.os == 'windows'
         shell: pwsh
         run: |
-          $nsisPath = "${Env:ProgramFiles(x86)}\NSIS\makensis.exe"
-          & $nsisPath installer.nsi
+          & "C:\Program Files (x86)\NSIS\makensis.exe" installer.nsi
 
       - name: Zip app for macOS (if applicable)
         if: matrix.os == 'macos'
@@ -89,36 +93,10 @@ jobs:
           cd output
           zip -r squidify-macos.zip ./*
 
-      # Upload Linux artifact
-      - name: Upload artifact for Linux
-        if: matrix.os == 'linux'
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: squidify-linux
-          path: output/
-
-      # Upload macOS artifact and zip
-      - name: Upload artifact for macOS
-        if: matrix.os == 'macos'
-        uses: actions/upload-artifact@v4
-        with:
-          name: squidify-macos
+          name: squidify-${{ matrix.os }}
           path: |
             output/
             output/squidify-macos.zip
-
-      # Upload Windows app folder separately
-      - name: Upload Windows app output
-        if: matrix.os == 'windows'
-        uses: actions/upload-artifact@v4
-        with:
-          name: squidify-windows-app
-          path: output/Squidify-win32-x64
-
-      # Upload Windows installer separately
-      - name: Upload Windows installer
-        if: matrix.os == 'windows'
-        uses: actions/upload-artifact@v4
-        with:
-          name: squidify-windows-installer
-          path: SquidifyInstaller.exe
