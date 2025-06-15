@@ -2,7 +2,7 @@
 !define APP_EXE "Squidify.exe"
 !define INSTALL_DIR "$PROGRAMFILES64\${APP_NAME}"
 
-OutFile "SquidifyInstaller.exe"
+OutFile "SquidifySetup.exe"
 InstallDir "${INSTALL_DIR}"
 RequestExecutionLevel admin
 
