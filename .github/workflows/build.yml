@@ -117,7 +117,13 @@ jobs:
         if: matrix.os == 'macos'
         run: |
           brew install create-dmg || true
+          # Ensure the output directory exists
           mkdir -p output
+          # Remove any existing output dmg file to avoid conflict
+          rm -f output/Squidify.dmg
+          # Run create-dmg with:
+          # first arg: path to app folder
+          # second arg: full dmg file path
           create-dmg "output/Squidify-mac-x64" "output/Squidify.dmg"
 
       - name: Upload macOS artifacts
