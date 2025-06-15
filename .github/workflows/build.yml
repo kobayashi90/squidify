@@ -106,7 +106,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: squidify-installer
-          path: output/SquidifySetup.exe
+          path: output/SquidifyInstaller.exe
 
       # Upload artifacts for Linux and macOS (single artifact)
       - name: Upload artifact (Linux/macOS)
