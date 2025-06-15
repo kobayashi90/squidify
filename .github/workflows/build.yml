@@ -161,10 +161,15 @@ jobs:
           mkdir -p output
           # Remove any existing output dmg file to avoid conflict
           rm -f output/Squidify.dmg
-          # Run create-dmg with:
-          # first arg: path to app folder
-          # second arg: full dmg file path
-          create-dmg "output/Squidify-mac-x64" "output/Squidify.dmg"
+          # Create DMG - create-dmg expects the output file first, then the source directory
+          create-dmg \
+            --volname "Squidify" \
+            --window-pos 200 120 \
+            --window-size 600 300 \
+            --icon-size 100 \
+            --app-drop-link 425 120 \
+            "output/Squidify.dmg" \
+            "output/Squidify-mac-x64"
 
       - name: Upload macOS artifacts
         if: matrix.os == 'macos'
