@@ -67,6 +67,20 @@ jobs:
             --chromium-args="--disable-http2 --disable-quic --disable-features=QUIC,HTTP3 --enable-features=HttpProtocolNegotiation" \
             "https://squidify.org" output/
 
+      - name: List output folder content (Windows)
+        if: matrix.os == 'windows'
+        shell: bash
+        run: |
+          echo "Listing contents of output folder:"
+          ls -la output
+
+      - name: Rename Nativefier output folder (Windows)
+        if: matrix.os == 'windows'
+        shell: bash
+        run: |
+          # Rename the nativefier output folder to fixed name for NSIS script
+          mv output/*win32* output/Squidify-win32-x64
+
       - name: Install NSIS (Windows)
         if: matrix.os == 'windows'
         run: choco install nsis
