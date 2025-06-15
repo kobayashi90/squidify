@@ -115,3 +115,177 @@ jobs:
         with:
           name: squidify-${{ matrix.os }}
           path: output/
+
+
+name: Build Squidify App
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      matrix:
+        os: [windows, macos, linux]
+        include:
+          - os: windows
+            runner: windows-latest
+            platform: windows
+          - os: macos
+            runner: macos-latest
+            platform: mac
+          - os: linux
+            runner: ubuntu-latest
+            platform: linux
+
+    name: Build for ${{ matrix.os }}
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install Nativefier and packaging tools
+        run: |
+          npm install -g nativefier
+          if [[ "${{ matrix.os }}" == "linux" ]]; then
+            sudo apt-get update
+            sudo apt-get install -y appimagetool
+          fi
+          if [[ "${{ matrix.os }}" == "macos" ]]; then
+            brew install create-dmg
+          fi
+
+      - name: Build Nativefier app
+        run: |
+          mkdir -p output
+          nativefier \
+            --name "Squidify" \
+            --platform=${{ matrix.platform }} \
+            --resizable \
+            --enable-dev-tools \
+            --single-instance \
+            --tray \
+            --user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36" \
+            --chromium-args="--disable-http2 --disable-quic --disable-features=QUIC,HTTP3 --enable-features=HttpProtocolNegotiation" \
+            "https://squidify.org" output/
+
+      - name: Rename Windows output folder
+        if: matrix.os == 'windows'
+        shell: bash
+        run: |
+          folder=$(find output -maxdepth 1 -type d -name '*win32-x64' | head -n 1)
+          echo "Renaming $folder to output/Squidify-win32-x64"
+          mv "$folder" output/Squidify-win32-x64
+
+      - name: Build NSIS installer (Windows only)
+        if: matrix.os == 'windows'
+        shell: bash
+        run: |
+          cat > installer.nsi <<EOF
+          !define APP_NAME "Squidify"
+          !define APP_EXE "Squidify.exe"
+          !define INSTALL_DIR "\$PROGRAMFILES64\\\${APP_NAME}"
+
+          OutFile "output/SquidifyInstaller.exe"
+          InstallDir "\${INSTALL_DIR}"
+          RequestExecutionLevel admin
+
+          Page directory
+          Page instfiles
+          UninstPage uninstConfirm
+          UninstPage instfiles
+
+          Section "Install"
+            SetOutPath "\$INSTDIR"
+            File /r "output\\Squidify-win32-x64\\*"
+
+            CreateShortcut "\$DESKTOP\\\${APP_NAME}.lnk" "\$INSTDIR\\\${APP_EXE}"
+            CreateShortcut "\$SMPROGRAMS\\\${APP_NAME}\\\${APP_NAME}.lnk" "\$INSTDIR\\\${APP_EXE}"
+
+            WriteUninstaller "\$INSTDIR\\Uninstall.exe"
+          SectionEnd
+
+          Section "Uninstall"
+            Delete "\$INSTDIR\\\${APP_EXE}"
+            Delete "\$DESKTOP\\\${APP_NAME}.lnk"
+            Delete "\$SMPROGRAMS\\\${APP_NAME}\\\${APP_NAME}.lnk"
+            Delete "\$INSTDIR\\Uninstall.exe"
+
+            RMDir /r "\$INSTDIR"
+          SectionEnd
+          EOF
+
+          "C:\\Program Files (x86)\\NSIS\\makensis.exe" installer.nsi
+
+      - name: Create DMG installer (macOS only)
+        if: matrix.os == 'macos'
+        run: |
+          # Find the .app folder inside output
+          app_folder=$(find output -maxdepth 1 -type d -name '*mac*' | head -n 1)
+          echo "Creating DMG for $app_folder"
+          create-dmg \
+            --volname "Squidify" \
+            --volicon "$app_folder/Contents/Resources/electron.icns" \
+            --window-pos 200 120 \
+            --window-size 600 400 \
+            --icon "Squidify.app" 175 120 \
+            --hide-extension "Squidify.app" \
+            --app-drop-link 425 120 \
+            "output/Squidify.dmg" \
+            "$app_folder"
+
+      - name: Create AppImage (Linux only)
+        if: matrix.os == 'linux'
+        run: |
+          folder=$(find output -maxdepth 1 -type d -name '*linux*' | head -n 1)
+          echo "Creating AppImage from $folder"
+          # Prepare AppDir structure for AppImage
+          mkdir -p Squidify.AppDir/usr/bin
+          cp -r "$folder/"* Squidify.AppDir/usr/bin/
+          # Create minimal Squidify.desktop
+          cat > Squidify.AppDir/Squidify.desktop <<EOF
+          [Desktop Entry]
+          Name=Squidify
+          Exec=Squidify
+          Icon=squidify
+          Type=Application
+          Categories=Network;WebBrowser;
+          EOF
+          # Put a dummy icon if you have one
+          # Run appimagetool
+          appimagetool Squidify.AppDir output/Squidify.AppImage
+
+      - name: Upload app artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: squidify-${{ matrix.os }}-app
+          path: output/
+
+      - name: Upload installer artifact (Windows only)
+        if: matrix.os == 'windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: squidify-installer
+          path: output/SquidifyInstaller.exe
+
+      - name: Upload DMG installer (macOS only)
+        if: matrix.os == 'macos'
+        uses: actions/upload-artifact@v4
+        with:
+          name: squidify-installer-dmg
+          path: output/Squidify.dmg
+
+      - name: Upload AppImage (Linux only)
+        if: matrix.os == 'linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: squidify-installer-appimage
+          path: output/Squidify.AppImage
