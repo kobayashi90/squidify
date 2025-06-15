@@ -78,12 +78,15 @@ jobs:
             output/squidify-windows.zip
             output/SquidifySetup.exe
 
-      - name: Install snapd & appimagetool (Linux only)
+      - name: Install AppImage dependencies (Linux only)
         if: matrix.os == 'linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y snapd
-          sudo snap install appimagetool --classic
+          sudo apt-get install -y wget fuse libfuse2
+          # Download appimagetool directly
+          wget https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x appimagetool-x86_64.AppImage
+          sudo mv appimagetool-x86_64.AppImage /usr/local/bin/appimagetool
 
       - name: Rename Linux folder (Linux only)
         if: matrix.os == 'linux'
@@ -93,10 +96,47 @@ jobs:
             mv "$folder" output/Squidify-linux-x64
           fi
 
+      - name: Create AppDir structure (Linux only)
+        if: matrix.os == 'linux'
+        run: |
+          mkdir -p Squidify.AppDir/usr/bin
+          mkdir -p Squidify.AppDir/usr/share/applications
+          mkdir -p Squidify.AppDir/usr/share/icons/hicolor/256x256/apps
+          
+          # Copy the nativefier app contents
+          cp -r output/Squidify-linux-x64/* Squidify.AppDir/usr/bin/
+          
+          # Create desktop file
+          cat > Squidify.AppDir/squidify.desktop << EOF
+          [Desktop Entry]
+          Type=Application
+          Name=Squidify
+          Exec=AppRun
+          Icon=squidify
+          Comment=Squidify Desktop App
+          Categories=Network;
+          EOF
+          
+          # Create AppRun script
+          cat > Squidify.AppDir/AppRun << 'EOF'
+          #!/bin/bash
+          HERE="$(dirname "$(readlink -f "${0}")")"
+          exec "${HERE}/usr/bin/Squidify" "$@"
+          EOF
+          chmod +x Squidify.AppDir/AppRun
+          
+          # Try to find and copy an icon (if available)
+          if [ -f "output/Squidify-linux-x64/resources/app/icon.png" ]; then
+            cp "output/Squidify-linux-x64/resources/app/icon.png" Squidify.AppDir/squidify.png
+          else
+            # Create a simple placeholder icon if none exists
+            convert -size 256x256 xc:blue Squidify.AppDir/squidify.png 2>/dev/null || touch Squidify.AppDir/squidify.png
+          fi
+
       - name: Build AppImage (Linux only)
         if: matrix.os == 'linux'
         run: |
-          appimagetool output/Squidify-linux-x64 output/Squidify.AppImage
+          ARCH=x86_64 appimagetool Squidify.AppDir output/Squidify.AppImage
 
       - name: Upload Linux artifact
         if: matrix.os == 'linux'
@@ -133,4 +173,4 @@ jobs:
           name: squidify-macos
           path: |
             output/Squidify-mac-x64
-            Squidify.dmg
+            output/Squidify.dmg
