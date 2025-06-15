@@ -47,6 +47,7 @@ jobs:
             --disable-dev-tools \
             --single-instance \
             --tray \
+            --chromium-args="--disable-http2 --disable-quic" \
             "https://squidify.org" output/
 
       - name: Build app with Nativefier (Windows)
