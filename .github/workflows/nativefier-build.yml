@@ -7,11 +7,20 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-
+    runs-on: ${{ matrix.runner }}
     strategy:
       matrix:
-        os: [linux, windows]
+        os: [linux, windows, macos]
+        include:
+          - os: linux
+            runner: ubuntu-latest
+            platform: linux
+          - os: windows
+            runner: windows-latest
+            platform: windows
+          - os: macos
+            runner: macos-latest
+            platform: mac
 
     name: Build for ${{ matrix.os }}
 
@@ -32,15 +41,23 @@ jobs:
           mkdir output
           nativefier \
             --name "Squidify" \
-            --platform=${{ matrix.os }} \
+            --platform=${{ matrix.platform }} \
             --resizable \
             --disable-dev-tools \
             --single-instance \
             --tray \
             "https://squidify.org" output/
 
+      - name: Zip app for macOS (if applicable)
+        if: matrix.os == 'macos'
+        run: |
+          cd output
+          zip -r squidify-macos.zip ./*
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: squidify-${{ matrix.os }}
-          path: output/
+          path: |
+            output/
+            output/squidify-macos.zip
