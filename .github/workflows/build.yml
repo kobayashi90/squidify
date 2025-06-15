@@ -78,8 +78,11 @@ jobs:
         if: matrix.os == 'windows'
         shell: bash
         run: |
-          # Rename the nativefier output folder to fixed name for NSIS script
-          mv output/*win32* output/Squidify-win32-x64
+          if [ ! -d output/Squidify-win32-x64 ]; then
+            mv output/*win32* output/Squidify-win32-x64
+          else
+            echo "Folder output/Squidify-win32-x64 already exists, skipping rename"
+          fi
 
       - name: Install NSIS (Windows)
         if: matrix.os == 'windows'
