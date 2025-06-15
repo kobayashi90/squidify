@@ -39,7 +39,7 @@ jobs:
       - name: Build app with Nativefier (Linux/macOS)
         if: matrix.os != 'windows'
         run: |
-          mkdir output
+          mkdir -p output
           nativefier \
             --name "Squidify" \
             --platform=${{ matrix.platform }} \
@@ -55,13 +55,26 @@ jobs:
         if: matrix.os == 'windows'
         run: |
           mkdir output
-          nativefier --name "Squidify" --platform=windows --resizable --enable-dev-tools --enable-context-menu --single-instance --tray --chromium-args="--disable-http2 --disable-quic" "https://squidify.org" output/
+          nativefier \
+            --name "Squidify" \
+            --platform=windows \
+            --resizable \
+            --enable-dev-tools \
+            --enable-context-menu \
+            --single-instance \
+            --tray \
+            --chromium-args="--disable-http2 --disable-quic" \
+            "https://squidify.org" output/
+
+      - name: List output folder contents (macOS)
+        if: matrix.os == 'macos'
+        run: ls -la output
 
       - name: Zip app for macOS (if applicable)
         if: matrix.os == 'macos'
         run: |
           cd output
-          zip -r squidify-macos.zip ./*
+          zip -r squidify-macos.zip .
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -70,3 +83,4 @@ jobs:
           path: |
             output/
             output/squidify-macos.zip
+
