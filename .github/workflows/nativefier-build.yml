@@ -53,6 +53,7 @@ jobs:
 
       - name: Build app with Nativefier (Windows)
         if: matrix.os == 'windows'
+        shell: bash
         run: |
           mkdir output
           nativefier \
@@ -83,4 +84,3 @@ jobs:
           path: |
             output/
             output/squidify-macos.zip
-
