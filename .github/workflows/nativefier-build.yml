@@ -48,7 +48,7 @@ jobs:
             --enable-context-menu \
             --single-instance \
             --tray \
-            --chromium-args="--disable-http2 --disable-quic" \
+            --chromium-args="--disable-http2 --disable-quic --disable-features=QUIC,HTTP3" \
             "https://squidify.org" output/
 
       - name: Build app with Nativefier (Windows)
@@ -64,7 +64,7 @@ jobs:
             --enable-context-menu \
             --single-instance \
             --tray \
-            --chromium-args="--disable-http2 --disable-quic" \
+            --chromium-args="--disable-http2 --disable-quic --disable-features=QUIC,HTTP3" \
             "https://squidify.org" output/
 
       - name: List output folder contents (macOS)
