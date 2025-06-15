@@ -53,18 +53,18 @@ jobs:
 
       - name: Build app with Nativefier (Windows)
         if: matrix.os == 'windows'
-        shell: bash
+        shell: pwsh
         run: |
           mkdir output
-          nativefier \
-            --name "Squidify" \
-            --platform=windows \
-            --resizable \
-            --enable-dev-tools \
-            --single-instance \
-            --tray \
-            --user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36" \
-            --chromium-args="--disable-http2 --disable-quic --disable-features=QUIC,HTTP3 --enable-features=HttpProtocolNegotiation" \
+          nativefier `
+            --name "Squidify" `
+            --platform=windows `
+            --resizable `
+            --enable-dev-tools `
+            --single-instance `
+            --tray `
+            --user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/115.0.0.0 Safari/537.36" `
+            --chromium-args="--disable-http2 --disable-quic --disable-features=QUIC,HTTP3 --enable-features=HttpProtocolNegotiation" `
             "https://squidify.org" output/
 
       - name: Rename Nativefier output folder to fixed name for NSIS script (Windows)
@@ -93,10 +93,25 @@ jobs:
           cd output
           zip -r squidify-macos.zip ./*
 
-      - name: Upload artifact
+      # Upload artifacts separately on Windows
+      - name: Upload Nativefier output artifact (Windows)
+        if: matrix.os == 'windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: squidify-win32-x64
+          path: output/Squidify-win32-x64
+
+      - name: Upload NSIS installer artifact (Windows)
+        if: matrix.os == 'windows'
+        uses: actions/upload-artifact@v4
+        with:
+          name: squidify-installer
+          path: output/SquidifySetup.exe
+
+      # Upload artifacts for Linux and macOS (single artifact)
+      - name: Upload artifact (Linux/macOS)
+        if: matrix.os != 'windows'
         uses: actions/upload-artifact@v4
         with:
           name: squidify-${{ matrix.os }}
-          path: |
-            output/
-            output/squidify-macos.zip
+          path: output/
